@@ -39,6 +39,8 @@ export interface Meta {
   paths: string[];
   exclude: string[];
   excludeExt: string[];
+  /** Extensions of more than one part, e.g. `spec.ts`. Absent when there are none. */
+  compoundExt?: string[];
   aliases: Record<string, string>;
   /** Version 2 only, in the order of the values in a key. Version 1 is `[{ name: "ext" }]`. */
   dimensions?: Dimension[];

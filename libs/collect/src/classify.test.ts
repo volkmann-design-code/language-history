@@ -19,6 +19,17 @@ describe("extensionOf", () => {
     expect(extensionOf("a.dir/Makefile")).toBe(NO_EXTENSION);
     expect(extensionOf("odd.")).toBe(NO_EXTENSION);
   });
+
+  test("compound extensions win over the last part, the longest first", () => {
+    const compound = ["spec.ts", "ng.spec.ts", "d.ts"];
+    expect(extensionOf("src/app.spec.ts", compound)).toBe("spec.ts");
+    expect(extensionOf("src/App.NG.Spec.ts", compound)).toBe("ng.spec.ts");
+    expect(extensionOf("src/app.ts", compound)).toBe("ts");
+    expect(extensionOf("src/appspec.ts", compound)).toBe("ts");
+    // The whole name is no extension
+    expect(extensionOf("spec.ts", compound)).toBe("ts");
+    expect(extensionOf(".spec.ts", compound)).toBe("ts");
+  });
 });
 
 describe("createClassifier", () => {
@@ -44,6 +55,19 @@ describe("createClassifier", () => {
     // Excluding the alias target drops everything aliased to it
     expect(classifier({ excludeExt: ["yml"] }).classify("a.yaml")).toBeNull();
     expect(classifier({ excludeExt: ["(none)"] }).classify("Dockerfile")).toBeNull();
+  });
+
+  test("compound extensions, with or without dot, can be aliased and excluded", () => {
+    expect(classifier({ compoundExt: [".Spec.TS"] }).classify("a.spec.ts")).toBe("spec.ts");
+    const { classify } = classifier({
+      compoundExt: ["spec.ts", "d.ts"],
+      aliases: { "d.ts": "ts" },
+    });
+    expect(classify("a.d.ts")).toBe("ts");
+    expect(classify("a.ts")).toBe("ts");
+    expect(
+      classifier({ compoundExt: ["spec.ts"], excludeExt: ["spec.ts"] }).classify("a.spec.ts"),
+    ).toBeNull();
   });
 
   test("excluded globs match the full path", () => {

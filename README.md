@@ -135,6 +135,7 @@ and inputs win over it. Unknown keys are an error.
 | `linguist` | `true` | Skip generated and vendored files: built-in rules and `.gitattributes` (see [Counting](#counting)) |
 | `exclude` | | Globs to skip, e.g. `**/generated/**` |
 | `excludeExt` | | Extensions to skip, e.g. `["svg", "json"]` |
+| `compoundExt` | | Extensions of more than one part to count on their own, e.g. `["spec.ts"]` (see [Counting](#counting)) |
 | `aliases` | see [Counting](#counting) | Count one extension as another, e.g. `{ "tsx": "ts" }` |
 | `defaultAliases` | `true` | Keep the built-in aliases |
 | `dimensions` | | Splits besides the extension, by name; see [Dimensions](#dimensions) |
@@ -246,7 +247,9 @@ With [dimensions](#dimensions), the file uses format version 2, which only store
   (`docs/`, …) and recognizes generated files by their content. language-history counts
   non-blank lines per file extension, of every text file, and only looks at paths.
 - Extension = text after the last dot, lower-cased; dotfiles count as their name (`.gitignore` →
-  `gitignore`), files without one as `(none)`. Default aliases (`mjs`/`cjs` → `js`, `mts`/`cts` →
+  `gitignore`), files without one as `(none)`. `compoundExt` adds extensions of more than one
+  part: with `["spec.ts"]`, tests in `app.spec.ts` count as `spec.ts`, apart from the code in
+  `app.ts`; the longest one a name ends with wins. Default aliases (`mjs`/`cjs` → `js`, `mts`/`cts` →
   `ts`, `yaml` → `yml`, …) can be extended (`--alias tsx=ts`), undone one by one
   (`--alias yaml=yaml`) or dropped (`--no-default-aliases`).
 
@@ -261,6 +264,7 @@ With [dimensions](#dimensions), the file uses format version 2, which only store
   bar uses for it (from [Linguist](https://github.com/github-linguist/linguist), regenerated with
   `bun run linguist-colors`). Extensions without one get a fixed color picked by their name. In
   dark mode, colors too dark to see on the background (JSON, Lua, Markdown, …) are lightened.
+  A compound extension (`spec.ts`) gets a lighter shade of its last part's color.
   `colors` overrides any of them, `Others` included, in both themes.
 - `--theme auto` (default) follows the viewer's light/dark setting through a media query inside
   the SVG, which also works when the SVG is embedded in a GitHub README. PNG gets one concrete

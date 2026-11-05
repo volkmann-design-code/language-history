@@ -68,6 +68,23 @@ describe("collectOptions", () => {
     expect(meta.aliases).toEqual({ tsx: "ts" });
   });
 
+  test("compound extensions are stored normalized, and only when set", () => {
+    const { meta } = collectOptions({ compoundExt: ["Spec.ts", "d.ts", ".spec.ts"] }, log);
+    expect(meta.compoundExt).toEqual(["d.ts", "spec.ts"]);
+    // Data collected before the setting existed keeps its settings line
+    expect("compoundExt" in collectOptions({}, log).meta).toBe(false);
+    expect("compoundExt" in collectOptions({ compoundExt: [] }, log).meta).toBe(false);
+  });
+
+  test("compound extensions need two parts", () => {
+    expect(() => validateSettings({ compoundExt: ["ts"] }, "config")).toThrow("two parts");
+    expect(() => validateSettings({ compoundExt: ["spec."] }, "config")).toThrow("two parts");
+    expect(() => validateSettings({ compoundExt: ["a/b.ts"] }, "config")).toThrow("two parts");
+    expect(validateSettings({ compoundExt: [".spec.ts"] }, "config")).toEqual({
+      compoundExt: [".spec.ts"],
+    });
+  });
+
   test("until today becomes a date", () => {
     expect(collectOptions({ until: "today" }, log).until).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });

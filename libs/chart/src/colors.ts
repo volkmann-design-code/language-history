@@ -18,10 +18,14 @@ export interface SchemeColors {
  */
 const MIN_CONTRAST: Record<Scheme, number> = { light: 1.2, dark: 3 };
 
+/** How far a compound extension's color (`spec.ts`) is mixed from its last part's towards white. */
+const COMPOUND_TINT = 0.5;
+
 /**
  * The color of a band: the override if there is one (used as is, in both schemes), else the
  * palette color at `slot` when given (keys that aren't extensions), else GitHub's language color,
- * else a fallback chosen by the extension's name. The same extension gets the same color in every
+ * else, for a compound extension (`spec.ts`), a lighter shade of its last part's color, else a
+ * fallback chosen by the extension's name. The same extension gets the same color in every
  * chart, whatever its rank.
  */
 export function bandColor(
@@ -44,6 +48,14 @@ export function bandColor(
   const language = LINGUIST_COLORS[key];
   if (language) {
     return withContrast(language, palette.surface, MIN_CONTRAST[scheme]);
+  }
+  const dot = key.lastIndexOf(".");
+  if (dot > 0) {
+    const base = parseHex(bandColor(key.slice(dot + 1), scheme, palette, overrides));
+    if (base) {
+      const tinted = toHex(base.map((v) => v + (255 - v) * COMPOUND_TINT) as Rgb);
+      return withContrast(tinted, palette.surface, MIN_CONTRAST[scheme]);
+    }
   }
   return palette.series[nameHash(key) % palette.series.length];
 }

@@ -33,6 +33,8 @@ collect:
                            (default: skipped, the checkout's .gitattributes apply to all days)
       --exclude <glob>     Skip files matching this glob, e.g. '**/generated/**' (repeatable)
       --exclude-ext <ext>  Skip these extensions, comma-separated or repeated (e.g. svg,json)
+      --compound-ext <ext> Count these extensions of more than one part on their own instead of as their
+                           last part, comma-separated or repeated (e.g. spec.ts,d.ts)
       --alias <from=to>    Count one extension as another, e.g. tsx=ts; yaml=yaml undoes a default (repeatable)
       --no-default-aliases Drop the built-in aliases (${Object.entries(DEFAULT_ALIASES)
         .map(([a, b]) => `${a}→${b}`)
@@ -74,6 +76,7 @@ const { values, positionals } = parseArgs({
     linguist: { type: "boolean" },
     exclude: { type: "string", multiple: true },
     "exclude-ext": { type: "string", multiple: true },
+    "compound-ext": { type: "string", multiple: true },
     alias: { type: "string", multiple: true },
     "default-aliases": { type: "boolean" },
     until: { type: "string" },
@@ -123,6 +126,7 @@ async function run(): Promise<void> {
       linguist: values.linguist,
       exclude: values.exclude,
       excludeExt: list(values["exclude-ext"]),
+      compoundExt: list(values["compound-ext"]),
       aliases: pairs(values.alias),
       defaultAliases: values["default-aliases"],
       until: values.until,

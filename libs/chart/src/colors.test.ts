@@ -35,6 +35,15 @@ describe("bandColor", () => {
     expect(bandColor("zzz-unknown", "light", light)).toBe(color);
   });
 
+  test("compound extensions get a lighter shade of their last part's color", () => {
+    expect(bandColor("spec.ts", "light", light)).toBe("#98bce3");
+    expect(bandColor("spec.ts", "dark", dark)).toBe("#98bce3");
+    // Following an override of the last part, and overridable themselves
+    expect(bandColor("spec.ts", "light", light, { ts: "#000000" })).toBe("#808080");
+    expect(bandColor("spec.ts", "light", light, { "spec.ts": "#ff0000" })).toBe("#ff0000");
+    expect(contrast(bandColor("min.json", "dark", dark), dark.surface)).toBeGreaterThanOrEqual(3);
+  });
+
   test("overrides win in both schemes, Others included", () => {
     const overrides = { ts: "#ff0000", [OTHERS]: "#00ff00" };
     expect(bandColor("ts", "light", light, overrides)).toBe("#ff0000");

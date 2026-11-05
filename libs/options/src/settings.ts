@@ -27,6 +27,8 @@ export interface Settings {
   linguist?: boolean;
   exclude?: string[];
   excludeExt?: string[];
+  /** Extensions of more than one part to count on their own, e.g. `["spec.ts", "d.ts"]`. */
+  compoundExt?: string[];
   /** Added to the default aliases; `{ "yaml": "yaml" }` undoes one. */
   aliases?: Record<string, string>;
   defaultAliases?: boolean;
@@ -68,6 +70,7 @@ const KEYS: Record<
   linguist: "boolean",
   exclude: "list",
   excludeExt: "list",
+  compoundExt: "list",
   aliases: "record",
   defaultAliases: "boolean",
   dimensions: "dimensions",
@@ -124,6 +127,13 @@ export function validateSettings(value: unknown, source: string): Settings {
   const settings = value as Settings;
   if (settings.theme !== undefined && !["auto", "light", "dark"].includes(settings.theme)) {
     throw new Error(`${source}: "theme" must be auto, light or dark`);
+  }
+  for (const ext of settings.compoundExt ?? []) {
+    if (!/^\.?[^./]+(\.[^./]+)+$/.test(ext)) {
+      throw new Error(
+        `${source}: "compoundExt" takes extensions of two parts or more, like "spec.ts", got "${ext}"`,
+      );
+    }
   }
   for (const [ext, color] of Object.entries(settings.colors ?? {})) {
     if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color)) {
@@ -252,6 +262,9 @@ export function collectOptions(
     }
   }
   const dimensions = dimensionsOf(settings);
+  const compoundExt = [
+    ...new Set((settings.compoundExt ?? []).map((ext) => ext.replace(/^\./, "").toLowerCase())),
+  ].sort();
   return {
     repo: settings.repo ?? ".",
     out: settings.data ?? DEFAULT_DATA,
@@ -264,6 +277,8 @@ export function collectOptions(
       paths: settings.paths ?? [],
       exclude: settings.exclude ?? [],
       excludeExt: settings.excludeExt ?? [],
+      // Only when set, so data collected before the setting existed stays valid
+      ...(compoundExt.length > 0 && { compoundExt }),
       aliases: Object.fromEntries(Object.entries(aliases).sort()),
       ...(dimensions.length > 1 && { dimensions }),
       linguist: settings.linguist ?? true,
