@@ -249,8 +249,9 @@ With [dimensions](#dimensions), the file uses format version 2, which only store
 - Extension = text after the last dot, lower-cased; dotfiles count as their name (`.gitignore` →
   `gitignore`), files without one as `(none)`. `compoundExt` adds extensions of more than one
   part: with `["spec.ts"]`, tests in `app.spec.ts` count as `spec.ts`, apart from the code in
-  `app.ts`; the longest one a name ends with wins. Default aliases (`mjs`/`cjs` → `js`, `mts`/`cts` →
-  `ts`, `yaml` → `yml`, …) can be extended (`--alias tsx=ts`), undone one by one
+  `app.ts`; the longest one a name ends with wins, and a name that is only the extension (`spec.ts`,
+  `.spec.ts`) keeps its last part. Default aliases (`mjs`/`cjs` → `js`, `mts`/`cts` → `ts`, `yaml` →
+  `yml`, …) can be extended (`--alias tsx=ts`), undone one by one
   (`--alias yaml=yaml`) or dropped (`--no-default-aliases`).
 
 ## Chart
