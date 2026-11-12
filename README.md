@@ -151,6 +151,7 @@ and inputs win over it. Unknown keys are an error.
 | `theme` | `auto` | `auto` (follows light/dark), `light` or `dark`; PNG uses light for `auto` |
 | `title` | `Lines of code` | |
 | `tooltips` | `true` | Per-day hover tooltips |
+| `showExcluded` | `false` | The excluded files and lines in the header and tooltips (see [Counting](#counting)) |
 | `colors` | GitHub's | Band colors by extension (or dimension value) or `Others`, e.g. `{ "ts": "#3178c6", "Others": "#999" }` (CLI: `--color ts=#3178c6`) |
 | `from`, `to` | | Limit the rendered range |
 
@@ -246,9 +247,9 @@ With [dimensions](#dimensions), the file uses format version 2, which only store
 - Nothing else is excluded by default. Scope with `--path` (git pathspecs), skip with `--exclude`
   (globs) and `--exclude-ext`.
 - What was left out is counted too: the text files skipped by the rules above, `.gitattributes`,
-  `exclude` or `excludeExt`, and their lines, per day. The chart's header shows them next to the
-  total (`152,300 lines · 8,410 excluded in 37 files`), as do the tooltips, the CSV export, the
-  action's outputs and its job summary. Binary and empty files and the tool's own files are not
+  `exclude` or `excludeExt`, and their lines, per day. They are in the CSV export, the action's
+  outputs and its job summary; with `showExcluded`, the chart's header names them next to the
+  total (`152,300 lines · 8,410 excluded in 37 files`), and so do the tooltips. Binary and empty files and the tool's own files are not
   part of it.
 - How this differs from GitHub's language bar: GitHub measures bytes per language, counts only
   programming and markup languages (no JSON, YAML or Markdown), also leaves out documentation

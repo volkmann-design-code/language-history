@@ -54,6 +54,7 @@ render:
       --title <text>       (default: "Lines of code")
       --from <date> --to <date>    Limit the rendered range
       --no-tooltips        Omit the per-day hover tooltips (smaller SVG)
+      --show-excluded      Name the excluded files and lines in the header and tooltips
       --color <ext=#hex>   Band color for an extension or Others, e.g. ts=#3178c6 (repeatable;
                            default: GitHub's language colors)
 
@@ -93,6 +94,7 @@ const { values, positionals } = parseArgs({
     from: { type: "string" },
     to: { type: "string" },
     tooltips: { type: "boolean" },
+    "show-excluded": { type: "boolean" },
     color: { type: "string", multiple: true },
   },
 });
@@ -141,6 +143,7 @@ async function run(): Promise<void> {
       theme: values.theme,
       title: values.title,
       tooltips: values.tooltips,
+      showExcluded: values["show-excluded"],
       colors: pairs(values.color),
       from: values.from,
       to: values.to,
