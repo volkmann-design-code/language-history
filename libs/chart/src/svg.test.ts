@@ -191,6 +191,21 @@ describe("renderSvg", () => {
     expect(render({ days: days(3) })).toContain("Lines &lt;of&gt; code");
   });
 
+  test("showExcluded names the excluded files in the header and tooltips, where the data has them", () => {
+    const excluded = days(3).map((day) => ({ ...day, excluded: { files: 1200, lines: 34_567 } }));
+    const svg = render({ days: excluded }, { showExcluded: true });
+    expect(svg).toContain("152 lines · 34,567 excluded in 1,200 files</text>");
+    expect(svg).toContain("Excluded 34,567 in 1,200 files");
+
+    for (const hidden of [
+      render({ days: excluded }),
+      render({ days: days(3) }, { showExcluded: true }),
+    ]) {
+      expect(hidden).toContain("· 152 lines</text>");
+      expect(hidden).not.toContain("xcluded");
+    }
+  });
+
   test("tooltips mark carried days and can be turned off", () => {
     expect(render({ days: days(3) })).toContain("2026-01-02 (no commit, carried over)");
     expect(render({ days: days(3) }, { tooltips: false })).not.toContain("<title>");

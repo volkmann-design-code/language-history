@@ -101,7 +101,8 @@ the rest, but `fetch-depth: 0` is faster.
 | `commit-message` | `chore: update language history [skip ci]` | |
 | `branch` | the branch the workflow runs on | Branch to push to; pull requests are never pushed |
 
-Outputs: `total` (lines on the last day), `date` (last day), `changed`, `committed`, `data`,
+Outputs: `total` (lines on the last day), `excluded-files` and `excluded-lines` (the text files
+left out on the last day, see [Counting](#counting)), `date` (last day), `changed`, `committed`, `data`,
 `outputs`. The job summary lists the largest extensions.
 
 ## CLI
@@ -150,6 +151,7 @@ and inputs win over it. Unknown keys are an error.
 | `theme` | `auto` | `auto` (follows light/dark), `light` or `dark`; PNG uses light for `auto` |
 | `title` | `Lines of code` | |
 | `tooltips` | `true` | Per-day hover tooltips |
+| `showExcluded` | `false` | The excluded files and lines in the header and tooltips (see [Counting](#counting)) |
 | `colors` | GitHub's | Band colors by extension (or dimension value) or `Others`, e.g. `{ "ts": "#3178c6", "Others": "#999" }` (CLI: `--color ts=#3178c6`) |
 | `from`, `to` | | Limit the rendered range |
 
@@ -193,13 +195,15 @@ Lines are always counted per extension. `dimensions` adds more splits, each by n
 
 ```jsonl
 {"meta":{"tool":"language-history","version":1,"ref":"main","tz":"Europe/Berlin","paths":[],"exclude":[],"excludeExt":[],"aliases":{"yaml":"yml"},"linguist":true,"linguistRules":1,"own":["language-history.jsonl","language-history.svg"],"attributes":".gitattributes:1234"}}
-{"date":"2026-01-04","commit":"3f2a…","carried":false,"total":5210,"byExt":{"ts":4100,"md":1110}}
-{"date":"2026-01-05","commit":"3f2a…","carried":true,"total":5210,"byExt":{"ts":4100,"md":1110}}
+{"date":"2026-01-04","commit":"3f2a…","carried":false,"total":5210,"excluded":{"files":3,"lines":9120},"byExt":{"ts":4100,"md":1110}}
+{"date":"2026-01-05","commit":"3f2a…","carried":true,"total":5210,"excluded":{"files":3,"lines":9120},"byExt":{"ts":4100,"md":1110}}
 ```
 
 - The first line holds the settings. If they or the `.gitattributes` files change, the next
   `collect` starts from scratch; `--full` forces that.
 - Days without a commit carry the previous values over (`carried: true`).
+- `excluded`: the text files left out that day and their lines (see [Counting](#counting)). Data
+  collected by an earlier version doesn't have it; the next `collect` then starts from scratch.
 - `byExt` holds every extension after aliases. Grouping into "Others" happens at render time, so
   the chart can change without collecting again.
 
@@ -207,8 +211,8 @@ With [dimensions](#dimensions), the file uses format version 2, which only store
 
 ```jsonl
 {"meta":{"tool":"language-history","version":2,…,"dimensions":[{"name":"package","dirs":["packages/*"]},{"name":"ext"}],…}}
-{"date":"2026-01-04","commit":"3f2a…","total":5210,"set":[["packages/app","ts",4100],["(rest)","md",1110]]}
-{"date":"2026-01-07","commit":"9c1e…","total":5260,"set":[["packages/app","ts",4150]]}
+{"date":"2026-01-04","commit":"3f2a…","total":5210,"excluded":{"files":3,"lines":9120},"set":[["packages/app","ts",4100],["(rest)","md",1110]]}
+{"date":"2026-01-07","commit":"9c1e…","total":5260,"excluded":{"files":3,"lines":9120},"set":[["packages/app","ts",4150]]}
 {"date":"2026-01-09","carried":true}
 ```
 
@@ -242,6 +246,11 @@ With [dimensions](#dimensions), the file uses format version 2, which only store
   changes them is not a commit day, so updating the chart doesn't change the chart.
 - Nothing else is excluded by default. Scope with `--path` (git pathspecs), skip with `--exclude`
   (globs) and `--exclude-ext`.
+- What was left out is counted too: the text files skipped by the rules above, `.gitattributes`,
+  `exclude` or `excludeExt`, and their lines, per day. They are in the CSV export, the action's
+  outputs and its job summary; with `showExcluded`, the chart's header names them next to the
+  total (`152,300 lines · 8,410 excluded in 37 files`), and so do the tooltips. Binary and empty files and the tool's own files are not
+  part of it.
 - How this differs from GitHub's language bar: GitHub measures bytes per language, counts only
   programming and markup languages (no JSON, YAML or Markdown), also leaves out documentation
   (`docs/`, …) and recognizes generated files by their content. language-history counts

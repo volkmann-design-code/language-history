@@ -1,4 +1,10 @@
-import { type Dataset, type DayRecord, dimensionNames, project } from "@language-history/format";
+import {
+  type Dataset,
+  type DayRecord,
+  dimensionNames,
+  linesSummary,
+  project,
+} from "@language-history/format";
 import { type BandOptions, computeBands, OTHERS } from "./bands";
 import { bandColor, type Scheme } from "./colors";
 
@@ -12,6 +18,8 @@ export interface SvgOptions extends BandOptions {
   title: string;
   /** Per-day hover tooltips (`<title>`); only useful where the SVG is interactive. */
   tooltips: boolean;
+  /** The excluded files and lines in the header and tooltips, where the data has them. */
+  showExcluded?: boolean;
   /** How many of the keys inside Others the legend names (it always gives their count). */
   othersListed: number;
   /** The dimension the bands stand for (default: `ext`); the others are summed up. */
@@ -225,7 +233,7 @@ export function renderSvg(dataset: Dataset, options: SvgOptions): string {
   parts.push(
     `<text x="${pad}" y="30" class="t-primary" fill="${base.primary}" font-size="16" font-weight="600">${esc(options.title)}</text>`,
     `<text x="${pad}" y="50" class="t-secondary" fill="${base.secondary}" font-size="12">${esc(
-      `Non-blank lines${scope}, last commit per day · ${first} – ${last.date} · ${full(last.total)} lines`,
+      `Non-blank lines${scope}, last commit per day · ${first} – ${last.date} · ${linesSummary(last.total, options.showExcluded ? last.excluded : undefined)}`,
     )}</text>`,
   );
 
@@ -332,6 +340,9 @@ export function renderSvg(dataset: Dataset, options: SvgOptions): string {
       const lines = [
         `${day.date}${day.carried ? " (no commit, carried over)" : ` · ${day.commit.slice(0, 9)}`}`,
         `Total ${full(day.total)}`,
+        ...(options.showExcluded && day.excluded?.files
+          ? [`Excluded ${full(day.excluded.lines)} in ${full(day.excluded.files)} files`]
+          : []),
         ...bands.keys
           .map((key, k) => ({ key, v: bands.values[i][k] }))
           .reverse()

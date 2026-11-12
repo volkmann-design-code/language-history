@@ -52,6 +52,8 @@ export interface Settings {
   theme?: Theme;
   title?: string;
   tooltips?: boolean;
+  /** The excluded files and lines in the header and tooltips. Default: false */
+  showExcluded?: boolean;
   /** Band colors by extension or "Others" (`#rgb` / `#rrggbb`), over GitHub's language colors. */
   colors?: Record<string, string>;
   from?: string;
@@ -86,6 +88,7 @@ const KEYS: Record<
   theme: "string",
   title: "string",
   tooltips: "boolean",
+  showExcluded: "boolean",
   colors: "record",
   from: "string",
   to: "string",
@@ -304,6 +307,7 @@ export function renderOptions(settings: Settings, log: (message: string) => void
     title: settings.title ?? "Lines of code",
     by,
     tooltips: settings.tooltips ?? true,
+    showExcluded: settings.showExcluded ?? false,
     colors: Object.fromEntries(
       Object.entries(settings.colors ?? {}).map(([key, color]) => [
         key.toLowerCase() === OTHERS.toLowerCase()

@@ -5,6 +5,7 @@ export {
   type Dimension,
   type DirsDimension,
   dimensionNames,
+  type Excluded,
   type ExtDimension,
   type GroupsDimension,
   KEY_SEPARATOR,
@@ -16,3 +17,4 @@ export {
   sameSettings,
   serializeDataset,
 } from "./dataset";
+export { linesSummary } from "./summary";

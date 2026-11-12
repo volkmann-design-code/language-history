@@ -7,7 +7,7 @@ const field = (value: string | number | boolean) => {
 
 /**
  * One row per day with one column per key of the dimensions `by` (default: all of them), largest
- * first. A key's column header joins its values with `/`, e.g. `packages/core/ts`.
+ * first, after the excluded files and lines (empty in data collected before they were measured). A key's column header joins its values with `/`, e.g. `packages/core/ts`.
  */
 export function toCsv(dataset: Dataset, by = dimensionNames(dataset.meta)): string {
   const names = dimensionNames(dataset.meta);
@@ -20,11 +20,27 @@ export function toCsv(dataset: Dataset, by = dimensionNames(dataset.meta)): stri
   }
   const keys = [...peak].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).map(([k]) => k);
   const lines = [
-    ["date", "commit", "carried", "total", ...keys.map((key) => key.split(KEY_SEPARATOR).join("/"))]
+    [
+      "date",
+      "commit",
+      "carried",
+      "total",
+      "excludedFiles",
+      "excludedLines",
+      ...keys.map((key) => key.split(KEY_SEPARATOR).join("/")),
+    ]
       .map(field)
       .join(","),
     ...rows.map(({ day, counts }) =>
-      [day.date, day.commit, day.carried, day.total, ...keys.map((key) => counts[key] ?? 0)]
+      [
+        day.date,
+        day.commit,
+        day.carried,
+        day.total,
+        day.excluded?.files ?? "",
+        day.excluded?.lines ?? "",
+        ...keys.map((key) => counts[key] ?? 0),
+      ]
         .map(field)
         .join(","),
     ),

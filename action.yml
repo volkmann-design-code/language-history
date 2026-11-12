@@ -43,6 +43,12 @@ outputs:
   total:
     description: Lines on the last day
     value: ${{ steps.run.outputs.total }}
+  excluded-files:
+    description: Text files left out on the last day (generated, vendored or excluded by the settings)
+    value: ${{ steps.run.outputs.excluded-files }}
+  excluded-lines:
+    description: Their lines
+    value: ${{ steps.run.outputs.excluded-lines }}
   date:
     description: Last day in the data (YYYY-MM-DD)
     value: ${{ steps.run.outputs.date }}

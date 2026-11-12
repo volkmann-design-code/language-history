@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { KEY_SEPARATOR, type Meta, REST } from "@language-history/format";
-import { readDataset } from "@language-history/format/file";
+import { readDataset, writeDataset } from "@language-history/format/file";
 import { collect } from "./collect";
 
 // Integration tests against throwaway git repositories with controlled commit dates.
@@ -212,6 +212,54 @@ describe("collect", () => {
       { js: 7, ts: 7 },
     ]);
     expect(counted.meta?.attributes).toBe("");
+  });
+
+  test("counts the text files left out and their lines, not binary, empty or its own files", async () => {
+    const r = createRepo();
+    r.commit("2026-01-01T12:00:00Z", {
+      "a.ts": lines(1),
+      "yarn.lock": lines(50),
+      "gen.ts": lines(5),
+      "src/generated/c.ts": lines(4),
+      "d.json": lines(8),
+      "logo.png": new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x0a, 0x41, 0x0a]),
+      "empty.lock": "\n",
+      "chart.svg": lines(9),
+    });
+    r.commit("2026-01-02T12:00:00Z", { "gen.ts": lines(6) });
+    r.write({ ".gitattributes": "gen.ts linguist-generated\n" });
+
+    const { days, logs } = await r.collect({
+      exclude: ["**/generated/**"],
+      excludeExt: ["json", "png"],
+      own: ["chart.svg"],
+    });
+
+    expect(days.map((d) => [d.date, d.counts, d.excluded])).toEqual([
+      ["2026-01-01", { ts: 1 }, { files: 4, lines: 67 }],
+      ["2026-01-02", { ts: 1 }, { files: 4, lines: 68 }],
+    ]);
+    expect(logs.at(-1)).toBe("2026-01-02: 1 lines · 68 excluded in 4 files");
+  });
+
+  test("data without excluded counts is collected from scratch", async () => {
+    const r = createRepo();
+    r.commit("2026-01-01T12:00:00Z", { "a.ts": lines(1), "yarn.lock": lines(3) });
+    r.commit("2026-01-02T12:00:00Z", { "a.ts": lines(2) });
+    const out = join(r.root, "old.jsonl");
+    const current = await r.collect({}, { out });
+    await writeDataset(out, {
+      meta: current.meta,
+      days: current.days.map(({ excluded, ...day }) => day),
+    });
+
+    const again = await r.collect({}, { out });
+
+    expect(again.logs[0]).toBe("Data has no excluded counts yet, collecting from scratch");
+    expect(again.days.map((d) => d.excluded)).toEqual([
+      { files: 1, lines: 3 },
+      { files: 1, lines: 3 },
+    ]);
   });
 
   test("built-in rules skip lock files and dependency folders, .gitattributes overrides them", async () => {

@@ -117,6 +117,7 @@ describe("renderOptions", () => {
     expect(options.maxBands).toBe(8);
     expect(options.theme).toBe("auto");
     expect(options.tooltips).toBe(true);
+    expect(options.showExcluded).toBe(false);
     expect(options.colors).toEqual({});
   });
 
