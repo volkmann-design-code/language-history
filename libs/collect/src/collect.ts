@@ -1,6 +1,8 @@
 import {
   type DayRecord,
+  type Excluded,
   KEY_SEPARATOR,
+  linesSummary,
   type Meta,
   nextDay,
   sameSettings,
@@ -83,14 +85,21 @@ export async function collect(options: CollectOptions): Promise<void> {
   // Resume: keep everything before the last stored day, that day may have gained commits since.
   const existing = await readDataset(options.out);
   let days: DayRecord[] = [];
-  if (!options.full && existing.meta && sameSettings(existing.meta, meta)) {
+  const hasExcluded = existing.days.every((day) => day.excluded);
+  if (!options.full && existing.meta && sameSettings(existing.meta, meta) && hasExcluded) {
     const resumeFrom = existing.days[existing.days.length - 1]?.date;
     days = existing.days.filter((day) => resumeFrom && day.date < resumeFrom);
     if (days.length) {
       log(`Resuming after ${days[days.length - 1].date} (${days.length} days kept)`);
     }
   } else if (existing.meta) {
-    log(options.full ? "Full run requested" : "Settings changed, collecting from scratch");
+    log(
+      options.full
+        ? "Full run requested"
+        : hasExcluded
+          ? "Settings changed, collecting from scratch"
+          : "Data has no excluded counts yet, collecting from scratch",
+    );
   }
 
   const classifier = createClassifier(meta);
@@ -141,12 +150,15 @@ export async function collect(options: CollectOptions): Promise<void> {
     }
   }
 
-  async function measure(sha: string): Promise<Record<string, number>> {
+  async function measure(
+    sha: string,
+  ): Promise<{ counts: Record<string, number>; excluded: Excluded }> {
     const blobs = await listBlobs(repo, sha, meta.paths);
     await classifyNew(blobs.map((blob) => blob.path).filter((path) => !keyByPath.has(path)));
-    const counted = blobs.filter((blob) => keyByPath.get(blob.path) !== null);
+    // Excluded files are read too, for the excluded count; own files are not
+    const read = blobs.filter((blob) => !own.has(blob.path));
     const unknown = new Map<string, number>();
-    for (const blob of counted) {
+    for (const blob of read) {
       if (!linesByBlob.has(blob.sha)) {
         unknown.set(blob.sha, blob.size);
       }
@@ -157,15 +169,22 @@ export async function collect(options: CollectOptions): Promise<void> {
       (blobSha, content) => linesByBlob.set(blobSha, countNonBlankLines(content)),
     );
     const counts: Record<string, number> = {};
-    for (const blob of counted) {
+    const excluded: Excluded = { files: 0, lines: 0 };
+    for (const blob of read) {
       const lines = linesByBlob.get(blob.sha);
-      const key = keyByPath.get(blob.path);
-      if (!lines || !key) {
-        continue; // binary, empty or excluded
+      if (!lines) {
+        continue; // binary or empty
       }
-      counts[key] = (counts[key] ?? 0) + lines;
+      const key = keyByPath.get(blob.path);
+      if (key) {
+        counts[key] = (counts[key] ?? 0) + lines;
+      } else {
+        excluded.files++;
+        excluded.lines += lines;
+      }
     }
-    return Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]));
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+    return { counts: Object.fromEntries(sorted), excluded };
   }
 
   let previous = days[days.length - 1];
@@ -175,9 +194,9 @@ export async function collect(options: CollectOptions): Promise<void> {
   while (day <= lastDay) {
     const sha = lastCommitOfDay.get(day);
     if (sha) {
-      const counts = await measure(sha);
+      const { counts, excluded } = await measure(sha);
       const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
-      previous = { date: day, commit: sha, carried: false, total, counts };
+      previous = { date: day, commit: sha, carried: false, total, excluded, counts };
       measured++;
       if (measured % 50 === 0) {
         log(`${day}  ${measured} commits measured`);
@@ -194,4 +213,8 @@ export async function collect(options: CollectOptions): Promise<void> {
   await writeDataset(options.out, { meta, days });
   const seconds = ((performance.now() - started) / 1000).toFixed(1);
   log(`Wrote ${days.length} days to ${options.out} (${measured} commits measured in ${seconds}s)`);
+  const last = days[days.length - 1];
+  if (last?.excluded) {
+    log(`${last.date}: ${linesSummary(last.total, last.excluded)}`);
+  }
 }

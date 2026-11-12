@@ -10,18 +10,26 @@ const counts = { "packages/a\u0000ts": 10, "packages/a\u0000md": 2, 'say, "hi"\u
 const dataset: Dataset = {
   meta,
   days: [
+    // Collected before excluded files were counted
     { date: "2026-01-01", commit: "a", carried: false, total: 17, counts },
-    { date: "2026-01-02", commit: "a", carried: true, total: 17, counts },
+    {
+      date: "2026-01-02",
+      commit: "b",
+      carried: false,
+      total: 17,
+      excluded: { files: 2, lines: 40 },
+      counts,
+    },
   ],
 };
 
 describe("toCsv", () => {
-  test("a column per key of all dimensions, largest first, quoted where needed", () => {
+  test("the excluded files and lines, then a column per key of all dimensions, largest first, quoted where needed", () => {
     expect(toCsv(dataset)).toBe(
       [
-        'date,commit,carried,total,packages/a/ts,"say, ""hi""/ts",packages/a/md',
-        "2026-01-01,a,false,17,10,5,2",
-        "2026-01-02,a,true,17,10,5,2",
+        'date,commit,carried,total,excludedFiles,excludedLines,packages/a/ts,"say, ""hi""/ts",packages/a/md',
+        "2026-01-01,a,false,17,,,10,5,2",
+        "2026-01-02,b,false,17,2,40,10,5,2",
         "",
       ].join("\n"),
     );
@@ -29,8 +37,8 @@ describe("toCsv", () => {
 
   test("summed up to some of the dimensions", () => {
     expect(toCsv(dataset, ["ext"]).split("\n").slice(0, 2)).toEqual([
-      "date,commit,carried,total,ts,md",
-      "2026-01-01,a,false,17,15,2",
+      "date,commit,carried,total,excludedFiles,excludedLines,ts,md",
+      "2026-01-01,a,false,17,,,15,2",
     ]);
   });
 });

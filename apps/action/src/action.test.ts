@@ -43,6 +43,8 @@ function setup() {
   git(root, ["init", "-q", "--bare", "-b", "main", remote]);
   git(root, ["clone", "-q", remote, seed]);
   writeFileSync(join(seed, "a.ts"), "a\nb\n");
+  // Left out by the built-in rules
+  writeFileSync(join(seed, "yarn.lock"), "x\ny\nz\n");
   git(seed, ["add", "-A"]);
   git(seed, ["commit", "-q", "-m", "one"], "2026-01-01T12:00:00Z");
   writeFileSync(join(seed, "b.md"), "c\n");
@@ -91,14 +93,18 @@ describe("runAction", () => {
 
     expect(result).toEqual({
       total: 3,
+      excludedFiles: 1,
+      excludedLines: 3,
       date: "2026-01-03",
       changed: true,
       committed: true,
       data: "language-history.jsonl",
       outputs: ["language-history.svg"],
     });
-    expect(output()).toContain("total=3\ndate=2026-01-03\nchanged=true\ncommitted=true\n");
-    expect(summary()).toContain("3 lines on 2026-01-03");
+    expect(output()).toContain(
+      "total=3\nexcluded-files=1\nexcluded-lines=3\ndate=2026-01-03\nchanged=true\ncommitted=true\n",
+    );
+    expect(summary()).toContain("3 lines · 3 excluded in 1 file on 2026-01-03");
     expect(git(root, ["--git-dir", remote, "log", "-1", "--format=%s %an"])).toBe(
       "chore: update language history [skip ci] github-actions[bot]",
     );
@@ -107,6 +113,7 @@ describe("runAction", () => {
       "b.md",
       "language-history.jsonl",
       "language-history.svg",
+      "yarn.lock",
     ]);
 
     const again = await runAction({ env: actionEnv(root, {}).env, cwd: work });

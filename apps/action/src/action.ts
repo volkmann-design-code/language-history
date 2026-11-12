@@ -3,7 +3,7 @@ import { isAbsolute, join, relative } from "node:path";
 import { compact } from "@language-history/chart";
 import { renderFiles } from "@language-history/chart/files";
 import { collect } from "@language-history/collect";
-import { dimensionNames, project } from "@language-history/format";
+import { dimensionNames, linesSummary, project } from "@language-history/format";
 import { readDataset } from "@language-history/format/file";
 import {
   collectOptions,
@@ -19,6 +19,9 @@ type Env = Record<string, string | undefined>;
 export interface ActionOutputs {
   /** Lines on the last day. */
   total: number;
+  /** Text files left out on the last day, and their lines. */
+  excludedFiles: number;
+  excludedLines: number;
   /** Last day in the data (YYYY-MM-DD). */
   date: string;
   /** The data or chart files differ from what is committed. */
@@ -110,6 +113,8 @@ export async function runAction({ env, cwd }: { env: Env; cwd: string }): Promis
     : "";
   const result: ActionOutputs = {
     total: last?.total ?? 0,
+    excludedFiles: last?.excluded?.files ?? 0,
+    excludedLines: last?.excluded?.lines ?? 0,
     date: last?.date ?? "",
     changed: status !== "",
     committed: false,
@@ -184,6 +189,8 @@ function writeOutputs(env: Env, result: ActionOutputs): void {
   }
   const lines = [
     `total=${result.total}`,
+    `excluded-files=${result.excludedFiles}`,
+    `excluded-lines=${result.excludedLines}`,
     `date=${result.date}`,
     `changed=${result.changed}`,
     `committed=${result.committed}`,
@@ -202,7 +209,7 @@ function writeSummary(env: Env, result: ActionOutputs, byExt: Record<string, num
     .slice(0, 8)
     .map(([ext, lines]) => `| .${ext} | ${compact(lines)} |`);
   const summary = [
-    `### language-history: ${result.total.toLocaleString("en-US")} lines on ${result.date}`,
+    `### language-history: ${linesSummary(result.total, { files: result.excludedFiles, lines: result.excludedLines })} on ${result.date}`,
     "",
     "| Extension | Lines |",
     "|---|---|",

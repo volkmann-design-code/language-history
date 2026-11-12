@@ -1,4 +1,10 @@
-import { type Dataset, type DayRecord, dimensionNames, project } from "@language-history/format";
+import {
+  type Dataset,
+  type DayRecord,
+  dimensionNames,
+  linesSummary,
+  project,
+} from "@language-history/format";
 import { type BandOptions, computeBands, OTHERS } from "./bands";
 import { bandColor, type Scheme } from "./colors";
 
@@ -225,7 +231,7 @@ export function renderSvg(dataset: Dataset, options: SvgOptions): string {
   parts.push(
     `<text x="${pad}" y="30" class="t-primary" fill="${base.primary}" font-size="16" font-weight="600">${esc(options.title)}</text>`,
     `<text x="${pad}" y="50" class="t-secondary" fill="${base.secondary}" font-size="12">${esc(
-      `Non-blank lines${scope}, last commit per day · ${first} – ${last.date} · ${full(last.total)} lines`,
+      `Non-blank lines${scope}, last commit per day · ${first} – ${last.date} · ${linesSummary(last.total, last.excluded)}`,
     )}</text>`,
   );
 
@@ -332,6 +338,9 @@ export function renderSvg(dataset: Dataset, options: SvgOptions): string {
       const lines = [
         `${day.date}${day.carried ? " (no commit, carried over)" : ` · ${day.commit.slice(0, 9)}`}`,
         `Total ${full(day.total)}`,
+        ...(day.excluded?.files
+          ? [`Excluded ${full(day.excluded.lines)} in ${full(day.excluded.files)} files`]
+          : []),
         ...bands.keys
           .map((key, k) => ({ key, v: bands.values[i][k] }))
           .reverse()

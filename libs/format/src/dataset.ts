@@ -60,6 +60,15 @@ export interface Meta {
   attributes: string;
 }
 
+/**
+ * Text files left out by the linguist rules, `.gitattributes`, `exclude` or `excludeExt`. Binary
+ * and empty files and the tool's own files are not counted here.
+ */
+export interface Excluded {
+  files: number;
+  lines: number;
+}
+
 /** One per calendar day, in memory; the file stores them as described at `Meta.version`. */
 export interface DayRecord {
   date: string;
@@ -68,6 +77,8 @@ export interface DayRecord {
   /** No commit on this day; values are carried over from the previous one. */
   carried: boolean;
   total: number;
+  /** Absent in data collected before it was measured. */
+  excluded?: Excluded;
   /** Lines per key (see `KEY_SEPARATOR`); keys without lines are left out. */
   counts: Record<string, number>;
 }
@@ -82,6 +93,7 @@ interface ChangeRow {
   date: string;
   commit: string;
   total: number;
+  excluded?: Excluded;
   /** `[...values, lines]` per changed key; 0 lines means the key is gone. */
   set: (string | number)[][];
 }
@@ -166,6 +178,7 @@ export function parseDataset(text: string): Dataset {
         commit: change.commit,
         carried: false,
         total: change.total,
+        ...(change.excluded ? { excluded: change.excluded } : {}),
         counts: byLines(state),
       });
     } else if (row.carried) {
@@ -203,7 +216,8 @@ function changeRows(days: DayRecord[]): string[] {
         set.push([...key.split(KEY_SEPARATOR), lines]);
       }
     }
-    const row: ChangeRow = { date: day.date, commit: day.commit, total: day.total, set };
+    const { date, commit, total, excluded } = day;
+    const row: ChangeRow = { date, commit, total, ...(excluded ? { excluded } : {}), set };
     rows.push(JSON.stringify(row));
     previous = day.counts;
   }

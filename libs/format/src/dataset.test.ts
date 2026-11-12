@@ -62,6 +62,14 @@ describe("version 1", () => {
     expect(parseDataset(serializeDataset(dataset))).toEqual(dataset);
   });
 
+  test("round-trips the excluded files, which older files don't have", () => {
+    const [first, second] = dataset.days;
+    const days = [first, { ...second, excluded: { files: 2, lines: 40 } }];
+    const text = serializeDataset({ meta, days });
+    expect(JSON.parse(text.trimEnd().split("\n")[2]).excluded).toEqual({ files: 2, lines: 40 });
+    expect(parseDataset(text).days).toEqual(days);
+  });
+
   test("blank lines are ignored and the settings line is optional", () => {
     const text = `\n${serializeDataset({ meta: null, days: [dataset.days[0]] })}\n`;
     expect(parseDataset(text)).toEqual({ meta: null, days: [dataset.days[0]] });
@@ -131,6 +139,22 @@ describe("version 2", () => {
     const parsed = parseDataset(lines.join("\n"));
     expect(parsed.meta).toEqual(meta2);
     expect(parsed.days).toEqual(days);
+  });
+
+  test("stores the excluded files on the line of a day with a commit", () => {
+    const withExcluded = days.map((d) => ({ ...d, excluded: { files: 3, lines: 70 } }));
+    const text = serializeDataset({ meta: meta2, days: withExcluded });
+    expect(JSON.parse(text.trimEnd().split("\n")[1])).toEqual({
+      date: "2026-01-01",
+      commit: "a",
+      total: 15,
+      excluded: { files: 3, lines: 70 },
+      set: [
+        ["packages/a", "ts", 10],
+        ["packages/b", "ts", 5],
+      ],
+    });
+    expect(parseDataset(text).days).toEqual(withExcluded);
   });
 
   test("a day without changes still gets a line", () => {
